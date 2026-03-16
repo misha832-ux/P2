@@ -47,44 +47,52 @@ body {
 }
 
 .user-form {
-  max-width: 500px;
+  max-width: 780px;
   width: 100%;
+  margin-top: 1.2rem;
 }
 
 .writing-form {
-  max-width: 700px;
+  max-width: 900px;
   width: 100%;
 }
 
 .form-title {
   font-size: 1.8rem;
   color: #2c3e50;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   text-align: center;
   font-weight: 600;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
   display: flex;
   flex-direction: column;
+  gap: 0.45rem;
 }
 
 .form-label {
-  font-size: 1rem;
-  color: #34495e;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-size: 1.1rem;
+  color: #1f3b5f;
+  font-weight: 600;
   display: block;
 }
 
 .form-input {
-  padding: 0.75rem;
+  padding: 0.75rem 0.85rem;
   font-size: 1rem;
-  border: 2px solid #bdc3c7;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  border: 2px solid #c3d0e1;
+  border-radius: 10px;
+  transition: all 0.25s ease;
   font-family: inherit;
+  background: #fff;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2f80ed;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.15);
 }
 
 .form-input:focus {

@@ -216,10 +216,10 @@ function AiPage({ onNext }: { onNext: (text: string) => void }) {
     <form onSubmit={submit} className="form-container writing-form">
       <h2 className="form-title">Write using AI</h2>
       <p className="form-subtext">
-        <b>Scenario:</b> You notice many electronic devices in your home (lights, chargers, appliances) are often left on even when not in use. Some people believe small daily habits like turning off unused devices can reduce energy consumption and help the environment over time.
+        <b>Scenario:</b>&nbsp;You notice many electronic devices in your home (lights, chargers, appliances) are often left on even when not in use. Some people believe small daily habits like turning off unused devices can reduce energy consumption and help the environment over time.
       </p>
       <p className="form-subtext">
-        <b>Reflection Question:</b> What are your thoughts on how individual daily habits can influence overall energy consumption and environmental sustainability?
+        <b>Reflection Question:</b>&nbsp;What are your thoughts on how individual daily habits can influence overall energy consumption and environmental sustainability?
       </p>
       <textarea
         rows={10}
@@ -280,10 +280,10 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
     <form onSubmit={submit} className="form-container writing-form">
       <h2 className="form-title">Write without using AI</h2>
       <p className="form-subtext">
-        <b>Scenario:</b> When people make everyday choices—such as using public transportation, conserving electricity, or reducing waste—these actions may seem small individually but can have larger collective impacts over time.
+        <b>Scenario:</b>&nbsp;When people make everyday choices—such as using public transportation, conserving electricity, or reducing waste—these actions may seem small individually but can have larger collective impacts over time.
       </p>
       <p className="form-subtext">
-        <b>Reflection Question:</b> To what extent do you think small individual actions can contribute to solving larger global issues?
+        <b>Reflection Question:</b>&nbsp;To what extent do you think small individual actions can contribute to solving larger global issues?
       </p><br></br>
       <p className="warning-text">⚠️ No AI assistance. Copy/paste is disabled.</p>
       <textarea
