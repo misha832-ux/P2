@@ -178,11 +178,11 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
 }
 
 /*
-  Page 2 – AI assisted writing about climate change. 2‑minute timer.
+  Page 2 – AI assisted writing about climate change. 10‑minute timer.
 */
 function AiPage({ onNext }: { onNext: (text: string) => void }) {
   const [text, setText] = useState("");
-  const [timeLeft, setTimeLeft] = useState(120);
+  const [timeLeft, setTimeLeft] = useState(600);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -214,7 +214,13 @@ function AiPage({ onNext }: { onNext: (text: string) => void }) {
 
   return (
     <form onSubmit={submit} className="form-container writing-form">
-      <h2 className="form-title">Write about Climate Change (with AI)</h2>
+      <h2 className="form-title">Write using AI</h2>
+      <p className="form-subtext">
+        <b>Scenario:</b> You notice many electronic devices in your home (lights, chargers, appliances) are often left on even when not in use. Some people believe small daily habits like turning off unused devices can reduce energy consumption and help the environment over time.
+      </p>
+      <p className="form-subtext">
+        <b>Reflection Question:</b> What are your thoughts on how individual daily habits can influence overall energy consumption and environmental sustainability?
+      </p>
       <textarea
         rows={10}
         value={text}
@@ -234,11 +240,11 @@ function AiPage({ onNext }: { onNext: (text: string) => void }) {
 }
 
 /*
-  Page 3 – manual writing about social media without copy/paste and with a 2‑minute lock.
+  Page 3 – manual writing about social media without copy/paste and with a 10‑minute lock.
 */
 function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
   const [text, setText] = useState("");
-  const [timeLeft, setTimeLeft] = useState(120);
+  const [timeLeft, setTimeLeft] = useState(600);
   const [disabled, setDisabled] = useState(false);
 
   useEffect(() => {
@@ -272,7 +278,13 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
 
   return (
     <form onSubmit={submit} className="form-container writing-form">
-      <h2 className="form-title">Write about Negative Impact of Social Media (without AI)</h2>
+      <h2 className="form-title">Write without using AI</h2>
+      <p className="form-subtext">
+        <b>Scenario:</b> When people make everyday choices—such as using public transportation, conserving electricity, or reducing waste—these actions may seem small individually but can have larger collective impacts over time.
+      </p>
+      <p className="form-subtext">
+        <b>Reflection Question:</b> To what extent do you think small individual actions can contribute to solving larger global issues?
+      </p><br></br>
       <p className="warning-text">⚠️ No AI assistance. Copy/paste is disabled.</p>
       <textarea
         rows={10}
