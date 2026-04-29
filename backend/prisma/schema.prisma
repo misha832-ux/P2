@@ -16,6 +16,7 @@ datasource db {
 
 model User {
   id         String @id @default(auto()) @db.ObjectId @map("_id")
+  userId     String
   name       String?
   age        Int
   gender     String

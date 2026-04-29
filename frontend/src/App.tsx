@@ -5,6 +5,7 @@ import "./App.css";
   Types used across the app.
 */
 interface UserInfo {
+  userId: string;
   name?: string;
   age: number;
   gender: string;
@@ -79,6 +80,7 @@ function App() {
   Page 1 – user information with required fields.
 */
 function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
+  const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [age, setAge] = useState<number | "">("");
   const [gender, setGender] = useState("");
@@ -89,6 +91,9 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
     e.preventDefault();
     const newErrors: string[] = [];
 
+    if (!id.trim()) {
+      newErrors.push("ID is required");
+    }
     if (age === "" || isNaN(Number(age))) {
       newErrors.push("Age is required");
     }
@@ -105,6 +110,7 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
     }
 
     const info: UserInfo = {
+      userId: id.trim(),
       age: Number(age),
       gender: gender.trim(),
       profession: profession.trim(),
@@ -123,6 +129,17 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
           ))}
         </div>
       )}
+      <div className="form-group">
+        <label className="form-label">
+          ID (required):
+          <input 
+            className="form-input" 
+            value={id} 
+            onChange={(e) => setId(e.target.value)} 
+            required
+          />
+        </label>
+      </div>
       <div className="form-group">
         <label className="form-label">
           Name (optional):
@@ -182,6 +199,7 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
 */
 function AiPage({ onNext }: { onNext: (text: string) => void }) {
   const [text, setText] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [timeLeft, setTimeLeft] = useState(600);
 
   useEffect(() => {
@@ -221,6 +239,19 @@ function AiPage({ onNext }: { onNext: (text: string) => void }) {
       <p className="form-subtext">
         <b>Reflection Question:</b>&nbsp;What are your thoughts on how individual daily habits can influence overall energy consumption and environmental sustainability?
       </p>
+      <div className="form-group">
+        <label className="form-label">
+          Enter the prompt you gave to AI:
+          <textarea
+            rows={3}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={disabled}
+            className="form-textarea"
+            placeholder="Enter your AI prompt here..."
+          />
+        </label>
+      </div>
       <textarea
         rows={10}
         value={text}

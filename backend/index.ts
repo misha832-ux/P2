@@ -31,8 +31,9 @@ app.get("/api/test", (req: Request, res: Response) => {
 app.post("/api/user", async (req: Request, res: Response) => {
   try {
     console.log("[POST /api/user]", req.body);
-    const { name, age, gender, profession } = req.body;
-    const data: { name?: string; age: number; gender: string; profession: string } = {
+    const { userId, name, age, gender, profession } = req.body;
+    const data: { userId: string; name?: string; age: number; gender: string; profession: string } = {
+      userId: userId,
       age: age,
       gender: gender,
       profession: profession,
