@@ -4,10 +4,14 @@ import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 
-// Load .env explicitly from the backend directory
-dotenv.config({ path: path.resolve(__dirname, ".env") });
 
-console.log("📌 DATABASE_URL:", process.env.DATABASE_URL ? "✅ Loaded" : "❌ NOT loaded");
+// Load .env explicitly from the backend directory
+dotenv.config();
+
+const prisma = new PrismaClient();
+
+console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Loaded" : "NOT loaded");
+
 
 const app = express();
 app.use(cors());
@@ -19,8 +23,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize Prisma with MongoDB connection
-const prisma = new PrismaClient();
 
 // Simple test route
 app.get("/api/test", (req: Request, res: Response) => {
