@@ -114,6 +114,8 @@ body {
 }
 
 .form-textarea {
+  background-color: white;
+  color: black;
   padding: 0.75rem;
   font-size: 0.95rem;
   border: 2px solid #bdc3c7;
