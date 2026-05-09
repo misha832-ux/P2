@@ -41,12 +41,12 @@ function App() {
     advance();
   };
 
-  const saveAi = (text: string) => {
-    console.log("[saveAi]", { text });
+  const saveAi = (prompt: string, text: string) => {
+    console.log("[saveAi]", { prompt, text });
     fetch(`${API}/api/ai-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ prompt, text }),
     })
       .then((res) => res.json())
       .then((data) => console.log("✅ AI text saved:", data))
@@ -72,7 +72,7 @@ function App() {
   return (
     <div className="app-container">
       {step === 1 && <UserInfoPage onNext={saveUser} />}
-      {step === 2 && <AiPage onNext={(text) => saveAi(text)} />}
+      {step === 2 && <AiPage onNext={(prompt, text) => saveAi(prompt, text)} />}
       {step === 3 && <ManualPage onSubmit={saveManual} />}
       {step === 4 && <ThankYouPage />}
     </div>
@@ -200,7 +200,7 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
 /*
   Page 2 – AI assisted writing about climate change. 10‑minute timer.
 */
-function AiPage({ onNext }: { onNext: (text: string) => void }) {
+function AiPage({ onNext }: { onNext: (prompt: string, text: string) => void }) {
   const [text, setText] = useState("");
   const [prompt, setPrompt] = useState("");
   const [timeLeft, setTimeLeft] = useState(600);
@@ -222,14 +222,14 @@ function AiPage({ onNext }: { onNext: (text: string) => void }) {
 
   useEffect(() => {
     if (disabled) {
-      onNext(text);
+      onNext(prompt, text);
     }
-  }, [disabled, text, onNext]);
+  }, [disabled, prompt, text, onNext]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!disabled) {
-      onNext(text);
+      onNext(prompt, text);
     }
   };
 

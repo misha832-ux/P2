@@ -26,6 +26,7 @@ model User {
 
 model AiEntry {
   id        String @id @default(auto()) @db.ObjectId @map("_id")
+  prompt    String?
   text      String
   createdAt DateTime @default(now())
 }
