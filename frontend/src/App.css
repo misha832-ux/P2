@@ -88,21 +88,21 @@ body {
 }
 
 .form-input {
+  background-color: white;
   padding: 0.6rem 0.75rem;
   font-size: 0.95rem;
   border: 2px solid #c3d0e1;
   border-radius: 10px;
   transition: all 0.25s ease;
   font-family: inherit;
-  background: #fff;
   width: 100%;
 }
 
 .form-input:focus {
+  background-color: white;
   outline: none;
   border-color: #3498db;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-  background-color: #f8f9ff;
 }
 
 .form-input:disabled {
