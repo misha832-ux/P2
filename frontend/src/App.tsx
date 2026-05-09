@@ -1,6 +1,8 @@
 import { useEffect, useState, FormEvent } from "react";
 import "./App.css";
 
+const API = import.meta.env.VITE_API_URL;
+
 /*
   Types used across the app.
 */
@@ -26,7 +28,7 @@ function App() {
 
   const saveUser = (info: UserInfo) => {
     console.log("[saveUser]", info);
-    fetch("/api/user", {
+    fetch(`${API}/api/user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(info),
@@ -40,7 +42,7 @@ function App() {
 
   const saveAi = (text: string) => {
     console.log("[saveAi]", { text });
-    fetch("/api/ai-text", {
+    fetch(`${API}/api/ai-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
@@ -54,7 +56,7 @@ function App() {
 
   const saveManual = (text: string) => {
     console.log("[saveManual]", { text });
-    fetch("/api/manual-text", {
+    fetch(`${API}/api/manual-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
