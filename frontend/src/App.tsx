@@ -1,4 +1,5 @@
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import "./App.css";
 
 const API = import.meta.env.VITE_API_URL;
@@ -22,7 +23,7 @@ interface SessionData {
 
 function App() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [session, setSession] = useState<SessionData>({});
+  const [, setSession] = useState<SessionData>({});
 
   const advance = () => setStep((s) => ((s + 1) as 1 | 2 | 3 | 4));
 
