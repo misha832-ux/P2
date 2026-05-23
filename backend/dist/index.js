@@ -49,9 +49,12 @@ app.post("/api/user", async (req, res) => {
 app.post("/api/ai-text", async (req, res) => {
     try {
         console.log("[POST /api/ai-text]", req.body);
-        const { prompt, text } = req.body;
+        const { prompt, text, userId } = req.body;
+        if (!userId || typeof userId !== "string") {
+            return res.status(400).json({ error: "Missing or invalid userId" });
+        }
         const aiEntry = await prisma.aiEntry.create({
-            data: { prompt, text },
+            data: { prompt, text, userId },
         });
         console.log("✅ AI entry created:", aiEntry);
         res.json({ ok: true, aiEntry });
@@ -65,9 +68,12 @@ app.post("/api/ai-text", async (req, res) => {
 app.post("/api/manual-text", async (req, res) => {
     try {
         console.log("[POST /api/manual-text]", req.body);
-        const { text } = req.body;
+        const { text, userId } = req.body;
+        if (!userId || typeof userId !== "string") {
+            return res.status(400).json({ error: "Missing or invalid userId" });
+        }
         const manualEntry = await prisma.manualEntry.create({
-            data: { text },
+            data: { text, userId },
         });
         console.log("✅ Manual entry created:", manualEntry);
         res.json({ ok: true, manualEntry });

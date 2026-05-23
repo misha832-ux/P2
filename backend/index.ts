@@ -41,9 +41,13 @@ app.post("/api/user", async (req: Request, res: Response) => {
       profession: profession,
     };
     if (typeof name === "string" && name.trim()) data.name = name.trim();
-    
-    const user = await prisma.user.create({ data });
-    console.log("✅ User created:", user);
+
+    const existingUser = await prisma.user.findFirst({ where: { userId } });
+    const user = existingUser
+      ? await prisma.user.update({ where: { id: existingUser.id }, data })
+      : await prisma.user.create({ data });
+
+    console.log("✅ User saved:", user);
     res.json({ ok: true, user });
   } catch (error) {
     console.error("❌ User creation failed:", error);
@@ -55,10 +59,34 @@ app.post("/api/user", async (req: Request, res: Response) => {
 app.post("/api/ai-text", async (req: Request, res: Response) => {
   try {
     console.log("[POST /api/ai-text]", req.body);
-    const { prompt, text } = req.body;
-    const aiEntry = await prisma.aiEntry.create({
-      data: { prompt, text },
-    });
+    const { prompt, text, userId } = req.body;
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" });
+    }
+    const user = await prisma.user.findFirst({ where: { userId } });
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
+    // const aiEntry = await prisma.aiEntry.create({
+    //   data: { prompt, text, userId, userRef: user.id },
+    // });
+    console.log("DATA BEING SAVED:", {
+    prompt,
+    text,
+    userId,
+    userRef: user.id,
+  });
+
+  const aiEntry = await prisma.aiEntry.create({
+    data: {
+      prompt,
+      text,
+      userId,
+      userRef: user.id,
+    },
+  });
+
+  console.log("SAVED ENTRY:", aiEntry);
     console.log("✅ AI entry created:", aiEntry);
     res.json({ ok: true, aiEntry });
   } catch (error) {
@@ -71,9 +99,16 @@ app.post("/api/ai-text", async (req: Request, res: Response) => {
 app.post("/api/manual-text", async (req: Request, res: Response) => {
   try {
     console.log("[POST /api/manual-text]", req.body);
-    const { text } = req.body;
+    const { text, userId } = req.body;
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" });
+    }
+    const user = await prisma.user.findFirst({ where: { userId } });
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
     const manualEntry = await prisma.manualEntry.create({
-      data: { text },
+      data: { text, userId, userRef: user.id },
     });
     console.log("✅ Manual entry created:", manualEntry);
     res.json({ ok: true, manualEntry });
@@ -88,12 +123,88 @@ app.get("/api/session", async (req: Request, res: Response) => {
   try {
     console.log("[GET /api/session]");
     const users = await prisma.user.findMany();
-    const aiEntries = await prisma.aiEntry.findMany();
-    const manualEntries = await prisma.manualEntry.findMany();
+    const aiEntries = await prisma.aiEntry.findMany({ include: { user: true } });
+    const manualEntries = await prisma.manualEntry.findMany({ include: { user: true } });
     console.log("✅ Session data fetched:", { users, aiEntries, manualEntries });
     res.json({ users, aiEntries, manualEntries });
   } catch (error) {
     console.error("❌ Session fetch failed:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// one-off: backfill entries that have a userId but missing userRef
+app.post("/api/backfill-entries", async (req: Request, res: Response) => {
+  try {
+    console.log("[POST /api/backfill-entries]");
+    const allAi = await prisma.aiEntry.findMany({ select: { id: true, userId: true, createdAt: true, userRef: true } });
+    const allManual = await prisma.manualEntry.findMany({ select: { id: true, userId: true, createdAt: true, userRef: true } });
+    const aiToUpdate = allAi.filter((e) => !e.userRef);
+    const manualToUpdate = allManual.filter((e) => !e.userRef);
+
+    const users = await prisma.user.findMany({ select: { id: true, userId: true, createdAt: true } });
+
+    const updatedAi: any[] = [];
+    for (const e of aiToUpdate) {
+      if (e.userId) {
+        const user = users.find((u) => u.userId === e.userId);
+        if (user) {
+          const u = await prisma.aiEntry.update({ where: { id: e.id }, data: { userRef: user.id } });
+          updatedAi.push(u);
+          continue;
+        }
+      }
+
+      if (e.createdAt) {
+        let best: any = null;
+        let bestDiff = Number.MAX_SAFE_INTEGER;
+        for (const u of users) {
+          if (!u.createdAt) continue;
+          const diff = Math.abs(new Date(e.createdAt).getTime() - new Date(u.createdAt).getTime());
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            best = u;
+          }
+        }
+        if (best && bestDiff <= 120_000) {
+          const u = await prisma.aiEntry.update({ where: { id: e.id }, data: { userRef: best.id, userId: best.userId } });
+          updatedAi.push(u);
+        }
+      }
+    }
+
+    const updatedManual: any[] = [];
+    for (const e of manualToUpdate) {
+      if (e.userId) {
+        const user = users.find((u) => u.userId === e.userId);
+        if (user) {
+          const u = await prisma.manualEntry.update({ where: { id: e.id }, data: { userRef: user.id } });
+          updatedManual.push(u);
+          continue;
+        }
+      }
+
+      if (e.createdAt) {
+        let best: any = null;
+        let bestDiff = Number.MAX_SAFE_INTEGER;
+        for (const u of users) {
+          if (!u.createdAt) continue;
+          const diff = Math.abs(new Date(e.createdAt).getTime() - new Date(u.createdAt).getTime());
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            best = u;
+          }
+        }
+        if (best && bestDiff <= 120_000) {
+          const u = await prisma.manualEntry.update({ where: { id: e.id }, data: { userRef: best.id, userId: best.userId } });
+          updatedManual.push(u);
+        }
+      }
+    }
+
+    res.json({ updatedAi, updatedManual });
+  } catch (error) {
+    console.error("❌ Backfill failed:", error);
     res.status(500).json({ error: String(error) });
   }
 });

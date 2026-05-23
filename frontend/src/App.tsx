@@ -23,7 +23,20 @@ interface SessionData {
 
 function App() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [, setSession] = useState<SessionData>({});
+  const [session, setSession] = useState<SessionData>({});
+
+  // Initialize session from localStorage so `userId` survives refresh/navigation
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sessionUser");
+      if (raw) {
+        const user = JSON.parse(raw) as UserInfo;
+        setSession({ user });
+      }
+    } catch (e) {
+      console.warn("Failed to parse sessionUser from localStorage", e);
+    }
+  }, []);
 
   const advance = () => setStep((s) => ((s + 1) as 1 | 2 | 3 | 4));
 
@@ -35,18 +48,41 @@ function App() {
       body: JSON.stringify(info),
     })
       .then((res) => res.json())
-      .then((data) => console.log("✅ User saved:", data))
+      .then((data) => {
+        console.log("✅ User saved:", data);
+        // prefer server-returned user if available
+        const savedUser = data?.user || info;
+        try {
+          localStorage.setItem("sessionUser", JSON.stringify(savedUser));
+        } catch (e) {
+          console.warn("Failed to persist sessionUser", e);
+        }
+        setSession((prev) => ({ ...prev, user: savedUser }));
+      })
       .catch((err) => console.error("❌ User save failed:", err));
-    setSession((prev) => ({ ...prev, user: info }));
+    
     advance();
   };
 
   const saveAi = (prompt: string, text: string) => {
     console.log("[saveAi]", { prompt, text });
+    const userId = session.user?.userId || (() => {
+      try {
+        const raw = localStorage.getItem("sessionUser");
+        if (!raw) return undefined;
+        return JSON.parse(raw).userId as string | undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (!userId) {
+      console.error("Missing userId for AI entry");
+      return;
+    }
     fetch(`${API}/api/ai-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, text }),
+      body: JSON.stringify({ prompt, text, userId }),
     })
       .then((res) => res.json())
       .then((data) => console.log("✅ AI text saved:", data))
@@ -57,10 +93,23 @@ function App() {
 
   const saveManual = (text: string) => {
     console.log("[saveManual]", { text });
+    const userId = session.user?.userId || (() => {
+      try {
+        const raw = localStorage.getItem("sessionUser");
+        if (!raw) return undefined;
+        return JSON.parse(raw).userId as string | undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (!userId) {
+      console.error("Missing userId for manual entry");
+      return;
+    }
     fetch(`${API}/api/manual-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, userId }),
     })
       .then((res) => res.json())
       .then((data) => console.log("✅ Manual text saved:", data))
