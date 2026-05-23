@@ -15,24 +15,33 @@ datasource db {
 }
 
 model User {
-  id         String @id @default(auto()) @db.ObjectId @map("_id")
-  userId     String
-  name       String?
-  age        Int
-  gender     String
-  profession String
-  createdAt  DateTime @default(now())
+  id           String @id @default(auto()) @db.ObjectId @map("_id")
+  userId       String
+  name         String?
+  age          Int
+  gender       String
+  profession   String
+  createdAt    DateTime @default(now())
+
+  aiEntries     AiEntry[]
+  manualEntries ManualEntry[]
 }
 
 model AiEntry {
   id        String @id @default(auto()) @db.ObjectId @map("_id")
   prompt    String?
   text      String
+  userId    String
+  userRef    String? @db.ObjectId
+  user      User?   @relation(fields: [userRef], references: [id])
   createdAt DateTime @default(now())
 }
 
 model ManualEntry {
   id        String @id @default(auto()) @db.ObjectId @map("_id")
   text      String
+  userId    String
+  userRef    String? @db.ObjectId
+  user      User?   @relation(fields: [userRef], references: [id])
   createdAt DateTime @default(now())
 }
