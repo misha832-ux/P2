@@ -337,6 +337,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
   const [timeLeft, setTimeLeft] = useState(600);
   const [disabled, setDisabled] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastInputMethodRef = useRef<"typing" | "paste" | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -358,14 +359,17 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
     }
   }, [disabled, timeLeft, text, onSubmit]);
 
-  // Add beforeinput listener to block paste events (especially from mobile keyboards)
+  // Monitor beforeinput to detect paste attempts
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
     const handleBeforeInput = (e: InputEvent) => {
       if (e.inputType === "insertFromPaste") {
+        lastInputMethodRef.current = "paste";
         e.preventDefault();
+      } else if (e.inputType === "insertText") {
+        lastInputMethodRef.current = "typing";
       }
     };
 
@@ -389,6 +393,31 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
     }
   };
 
+  // Handle text changes and detect paste attempts from clipboard
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    const oldText = text;
+
+    // Detect paste: if more than 1 character added at once, reject it
+    const diff = newText.length - oldText.length;
+    if (diff > 1) {
+      // This is likely a paste operation, reject it
+      return;
+    }
+
+    // Also check if text was inserted in the middle (another paste indicator)
+    if (diff > 0 && oldText.length > 0) {
+      const cursorPos = e.target.selectionStart;
+      if (cursorPos && cursorPos < newText.length) {
+        // Text was inserted in the middle, likely a paste
+        return;
+      }
+    }
+
+    setText(newText);
+    lastInputMethodRef.current = null;
+  };
+
   return (
     <form onSubmit={submit} className="form-container writing-form">
       <h2 className="form-title">Write without using AI</h2>
@@ -403,7 +432,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
         ref={textareaRef}
         rows={10}
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={handleChange}
         disabled={disabled}
         className="form-textarea"
         placeholder="Start writing..."
