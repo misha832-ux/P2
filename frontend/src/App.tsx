@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { FormEvent } from "react";
 import "./App.css";
 
@@ -336,6 +336,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
   const [text, setText] = useState("");
   const [timeLeft, setTimeLeft] = useState(600);
   const [disabled, setDisabled] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -357,6 +358,21 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
     }
   }, [disabled, timeLeft, text, onSubmit]);
 
+  // Add beforeinput listener to block paste events (especially from mobile keyboards)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleBeforeInput = (e: InputEvent) => {
+      if (e.inputType === "insertFromPaste") {
+        e.preventDefault();
+      }
+    };
+
+    textarea.addEventListener("beforeinput", handleBeforeInput);
+    return () => textarea.removeEventListener("beforeinput", handleBeforeInput);
+  }, []);
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!disabled) {
@@ -365,6 +381,13 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
   };
 
   const block = (e: React.ClipboardEvent) => e.preventDefault();
+
+  // Block keyboard shortcuts for paste (Ctrl+V, Cmd+V)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+      e.preventDefault();
+    }
+  };
 
   return (
     <form onSubmit={submit} className="form-container writing-form">
@@ -377,6 +400,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
       </p>
       <p className="warning-text">⚠️ No AI assistance. Copy/paste is disabled.</p>
       <textarea
+        ref={textareaRef}
         rows={10}
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -387,6 +411,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
         onPaste={block}
         onCut={block}
         onContextMenu={(e) => e.preventDefault()}
+        onKeyDown={handleKeyDown}
       />
       <div className={`timer ${timeLeft < 60 ? "timer-low" : ""}`}>
         Time left: <span className="timer-value">{formatTime(timeLeft)}</span>
