@@ -4,6 +4,13 @@ import "./App.css";
 
 const API = import.meta.env.VITE_API_URL;
 
+// Utility function to format seconds as MM:SS
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
 /*
   Types used across the app.
 */
@@ -223,7 +230,7 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => void }) {
             onChange={(e) => setGender(e.target.value)} 
             required
           >
-            <option value="">Select Gender</option>
+            <option value="" disabled>Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
             <option value="Other">Other</option>
@@ -312,8 +319,8 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => void }) 
         className="form-textarea"
         placeholder="Start writing..."
       />
-      <div className="timer">
-        Time left: <span className="timer-value">{timeLeft}</span> seconds
+      <div className={`timer ${timeLeft < 60 ? "timer-low" : ""}`}>
+        Time left: <span className="timer-value">{formatTime(timeLeft)}</span>
       </div>
       <button type="submit" className="btn btn-primary" disabled={disabled}>
         {disabled ? "Time's up! Moving to next page..." : "Next"}
@@ -367,7 +374,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
       </p>
       <p className="form-subtext">
         <b>Reflection Question:</b>&nbsp;To what extent do you think small individual actions can contribute to solving larger global issues?
-      </p><br></br>
+      </p>
       <p className="warning-text">⚠️ No AI assistance. Copy/paste is disabled.</p>
       <textarea
         rows={10}
@@ -381,8 +388,8 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => void }) {
         onCut={block}
         onContextMenu={(e) => e.preventDefault()}
       />
-      <div className="timer">
-        Time left: <span className="timer-value">{timeLeft}</span> seconds
+      <div className={`timer ${timeLeft < 60 ? "timer-low" : ""}`}>
+        Time left: <span className="timer-value">{formatTime(timeLeft)}</span>
       </div>
       <button type="submit" className="btn btn-primary" disabled={disabled}>
         {disabled ? "Time's up! Submitting..." : "Finish"}
