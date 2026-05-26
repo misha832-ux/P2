@@ -77,6 +77,14 @@ function App() {
     }
   }, []);
 
+  // Keep the server awake — ping every 5 minutes so it never cold-starts on a user
+  useEffect(() => {
+    const ping = () => fetch(`${API}/api/ping`).catch(() => {});
+    ping(); // ping immediately on page load
+    const interval = setInterval(ping, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const advance = () => setStep((s) => ((s + 1) as 1 | 2 | 3 | 4));
 
   // Returns true on success, false on failure

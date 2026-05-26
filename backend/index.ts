@@ -65,6 +65,11 @@ app.get("/api/test", (_req: Request, res: Response) => {
   res.json({ message: "✅ Backend connected to MongoDB via Prisma!" });
 });
 
+// Keep-alive ping — called every 5 minutes from the frontend to prevent cold starts
+app.get("/api/ping", (_req: Request, res: Response) => {
+  res.json({ ok: true });
+});
+
 // POST /api/user
 app.post("/api/user", async (req: Request, res: Response) => {
   try {
