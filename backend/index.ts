@@ -1,15 +1,13 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
-// express-rate-limit is used if available, otherwise a simple inline limiter is used
 import dotenv from "dotenv";
 
 dotenv.config();
 
 console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Loaded" : "NOT loaded");
 
-// Fix 1: Connection pool — cap at 10 connections, well within MongoDB Atlas free tier (100 limit)
-// This prevents the server from opening a new connection per request under load.
+// Connection pool — cap at 10 connections, well within MongoDB Atlas free tier (100 limit)
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -20,8 +18,7 @@ const prisma = new PrismaClient({
 
 const app = express();
 
-// Fix 2: Rate limiting — max 30 requests per IP per minute
-// Inline implementation requires no extra package.
+// Rate limiting — max 30 requests per IP per minute
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 app.use("/api/", (req, res, next) => {
   const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "unknown";
@@ -42,25 +39,33 @@ app.use("/api/", (req, res, next) => {
 
 app.use(cors());
 
-// Body size cap — rejects payloads over 50 KB (plenty for survey text, blocks abuse)
+// Body size cap
 app.use(express.json({ limit: "50kb" }));
+
+// Request timeout middleware — responds with 503 if a handler takes more than 9 seconds.
+// The frontend aborts at 10 s; this fires just before so the response body is meaningful.
+app.use((_req: Request, res: Response, next) => {
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(503).json({ error: "Request timed out. Please try again." });
+    }
+  }, 9000);
+  res.on("finish", () => clearTimeout(timer));
+  res.on("close", () => clearTimeout(timer));
+  next();
+});
 
 app.use((req, _res, next) => {
   console.log(`[${req.method}] ${req.path}`);
   next();
 });
 
-
 // Health check
 app.get("/api/test", (_req: Request, res: Response) => {
   res.json({ message: "✅ Backend connected to MongoDB via Prisma!" });
 });
 
-
 // POST /api/user
-// Fix 3: Use Prisma upsert() — atomic find-or-create, eliminates the race condition
-// where two simultaneous requests with the same userId would both pass a findFirst
-// check and then both try to create, producing duplicate records.
 app.post("/api/user", async (req: Request, res: Response) => {
   try {
     const { userId, name, age, gender, profession } = req.body;
@@ -85,10 +90,8 @@ app.post("/api/user", async (req: Request, res: Response) => {
       ...(typeof name === "string" && name.trim() ? { name: name.trim() } : {}),
     };
 
-    // Safe upsert: findFirst then create or update.
-    // Once you run `npx prisma db push` + `npx prisma generate`, you can switch to
-    // prisma.user.upsert({ where: { userId } }) for a single atomic operation.
-    const existing = await prisma.user.findFirst({ where: { userId: userId.trim() } });
+    // Use findUnique (userId has @unique) — much faster than findFirst (no full scan)
+    const existing = await prisma.user.findUnique({ where: { userId: userId.trim() } });
     const user = existing
       ? await prisma.user.update({ where: { id: existing.id }, data })
       : await prisma.user.create({ data: { userId: userId.trim(), ...data } });
@@ -97,10 +100,9 @@ app.post("/api/user", async (req: Request, res: Response) => {
     res.json({ ok: true, user });
   } catch (error) {
     console.error("❌ User upsert failed:", error);
-    res.status(500).json({ error: "Failed to save user" });
+    if (!res.headersSent) res.status(500).json({ error: "Failed to save user" });
   }
 });
-
 
 // POST /api/ai-text
 app.post("/api/ai-text", async (req: Request, res: Response) => {
@@ -114,8 +116,8 @@ app.post("/api/ai-text", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing text" });
     }
 
-    // findFirst works now; after `prisma generate` you can use findUnique for speed
-    const user = await prisma.user.findFirst({ where: { userId } });
+    // findUnique instead of findFirst — uses the @unique index, avoids full collection scan
+    const user = await prisma.user.findUnique({ where: { userId } });
     if (!user) {
       return res.status(400).json({ error: "User not found" });
     }
@@ -133,10 +135,9 @@ app.post("/api/ai-text", async (req: Request, res: Response) => {
     res.json({ ok: true, aiEntry });
   } catch (error) {
     console.error("❌ AI entry failed:", error);
-    res.status(500).json({ error: "Failed to save AI entry" });
+    if (!res.headersSent) res.status(500).json({ error: "Failed to save AI entry" });
   }
 });
-
 
 // POST /api/manual-text
 app.post("/api/manual-text", async (req: Request, res: Response) => {
@@ -150,8 +151,8 @@ app.post("/api/manual-text", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing text" });
     }
 
-    // findFirst works now; after `prisma generate` you can use findUnique for speed
-    const user = await prisma.user.findFirst({ where: { userId } });
+    // findUnique instead of findFirst — uses the @unique index, avoids full collection scan
+    const user = await prisma.user.findUnique({ where: { userId } });
     if (!user) {
       return res.status(400).json({ error: "User not found" });
     }
@@ -164,10 +165,9 @@ app.post("/api/manual-text", async (req: Request, res: Response) => {
     res.json({ ok: true, manualEntry });
   } catch (error) {
     console.error("❌ Manual entry failed:", error);
-    res.status(500).json({ error: "Failed to save manual entry" });
+    if (!res.headersSent) res.status(500).json({ error: "Failed to save manual entry" });
   }
 });
-
 
 // GET /api/session — admin inspection route
 app.get("/api/session", async (_req: Request, res: Response) => {
@@ -180,10 +180,9 @@ app.get("/api/session", async (_req: Request, res: Response) => {
     res.json({ users, aiEntries, manualEntries });
   } catch (error) {
     console.error("❌ Session fetch failed:", error);
-    res.status(500).json({ error: "Failed to fetch session" });
+    if (!res.headersSent) res.status(500).json({ error: "Failed to fetch session" });
   }
 });
-
 
 // POST /api/backfill-entries — one-off admin utility
 app.post("/api/backfill-entries", async (_req: Request, res: Response) => {
@@ -220,7 +219,7 @@ app.post("/api/backfill-entries", async (_req: Request, res: Response) => {
     res.json({ updatedAi, updatedManual });
   } catch (error) {
     console.error("❌ Backfill failed:", error);
-    res.status(500).json({ error: "Backfill failed" });
+    if (!res.headersSent) res.status(500).json({ error: "Backfill failed" });
   }
 });
 
@@ -234,7 +233,6 @@ function findClosest(users: { id: string; userId: string; createdAt: Date }[], c
   }
   return best && bestDiff <= 120_000 ? best : null;
 }
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
