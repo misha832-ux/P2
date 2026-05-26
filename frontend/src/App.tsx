@@ -104,9 +104,15 @@ function App() {
       }
       setSession((prev) => ({ ...prev, user: savedUser }));
       return true;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("❌ User save failed:", err);
-      return false;
+      if (!navigator.onLine || (err instanceof Error && (err.name === "AbortError" && !navigator.onLine || err.message.toLowerCase().includes("failed to fetch") || err.message.toLowerCase().includes("network")))) {
+        throw new Error("OFFLINE");
+      }
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error("TIMEOUT");
+      }
+      throw err;
     }
   };
 
@@ -135,9 +141,13 @@ function App() {
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       setSession((prev) => ({ ...prev, aiText: text }));
       return true;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("❌ AI text save failed:", err);
-      return false;
+      if (!navigator.onLine || (err instanceof Error && (err.message.toLowerCase().includes("failed to fetch") || err.message.toLowerCase().includes("network")))) {
+        throw new Error("OFFLINE");
+      }
+      if (err instanceof Error && err.name === "AbortError") throw new Error("TIMEOUT");
+      throw err;
     }
   };
 
@@ -166,9 +176,13 @@ function App() {
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       setSession((prev) => ({ ...prev, manualText: text }));
       return true;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("❌ Manual text save failed:", err);
-      return false;
+      if (!navigator.onLine || (err instanceof Error && (err.message.toLowerCase().includes("failed to fetch") || err.message.toLowerCase().includes("network")))) {
+        throw new Error("OFFLINE");
+      }
+      if (err instanceof Error && err.name === "AbortError") throw new Error("TIMEOUT");
+      throw err;
     }
   };
 
@@ -248,8 +262,14 @@ function UserInfoPage({ onNext }: { onNext: (info: UserInfo) => Promise<void> })
     setApiError(null);
     try {
       await onNext(info);
-    } catch {
-      setApiError("Could not save your information. Please check your connection and try again.");
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "OFFLINE") {
+        setApiError("No internet connection. Please check your network and try again.");
+      } else if (err instanceof Error && err.message === "TIMEOUT") {
+        setApiError("The request timed out. Please try again.");
+      } else {
+        setApiError("Could not save your information. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -350,8 +370,14 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => Promise<
     setApiError(null);
     try {
       await onNext(currentPrompt, currentText);
-    } catch {
-      setApiError("Could not save your response. Please try again.");
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "OFFLINE") {
+        setApiError("No internet connection. Please check your network and try again.");
+      } else if (err instanceof Error && err.message === "TIMEOUT") {
+        setApiError("The request timed out. Please try again.");
+      } else {
+        setApiError("Could not save your response. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -455,8 +481,14 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
     setApiError(null);
     try {
       await onSubmit(currentText);
-    } catch {
-      setApiError("Could not save your response. Please try again.");
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "OFFLINE") {
+        setApiError("No internet connection. Please check your network and try again.");
+      } else if (err instanceof Error && err.message === "TIMEOUT") {
+        setApiError("The request timed out. Please try again.");
+      } else {
+        setApiError("Could not save your response. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
