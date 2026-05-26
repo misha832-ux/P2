@@ -4,6 +4,18 @@ import "./App.css";
 
 const API = import.meta.env.VITE_API_URL;
 
+// Timeout wrapper: rejects if fetch takes longer than `ms` milliseconds
+async function fetchWithTimeout(url: string, options: RequestInit, ms = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -70,11 +82,15 @@ function App() {
   // Returns true on success, false on failure
   const saveUser = async (info: UserInfo): Promise<boolean> => {
     try {
-      const res = await fetch(`${API}/api/user`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(info),
-      });
+      const res = await fetchWithTimeout(
+        `${API}/api/user`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(info),
+        },
+        10000
+      );
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       const data = await res.json();
       const savedUser = data?.user || info;
@@ -104,11 +120,15 @@ function App() {
       return false;
     }
     try {
-      const res = await fetch(`${API}/api/ai-text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, text, userId }),
-      });
+      const res = await fetchWithTimeout(
+        `${API}/api/ai-text`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, text, userId }),
+        },
+        10000
+      );
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       setSession((prev) => ({ ...prev, aiText: text }));
       return true;
@@ -131,11 +151,15 @@ function App() {
       return false;
     }
     try {
-      const res = await fetch(`${API}/api/manual-text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, userId }),
-      });
+      const res = await fetchWithTimeout(
+        `${API}/api/manual-text`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, userId }),
+        },
+        10000
+      );
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       setSession((prev) => ({ ...prev, manualText: text }));
       return true;
@@ -301,6 +325,7 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => Promise<
   const [timeLeft, setTimeLeft] = useState(600);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const hasAutoSubmitted = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -314,28 +339,30 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => Promise<
 
   const timesUp = timeLeft === 0;
 
-  // Auto-submit when timer expires
-  useEffect(() => {
-    if (timesUp && !saving) {
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timesUp]);
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (currentPrompt: string, currentText: string) => {
     setSaving(true);
     setApiError(null);
     try {
-      await onNext(prompt, text);
+      await onNext(currentPrompt, currentText);
     } catch {
       setApiError("Could not save your response. Please try again.");
+    } finally {
       setSaving(false);
     }
   };
 
+  // Auto-submit when timer expires — use ref to prevent double-firing
+  useEffect(() => {
+    if (timesUp && !hasAutoSubmitted.current) {
+      hasAutoSubmitted.current = true;
+      handleSubmit(prompt, text);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timesUp]);
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!timesUp && !saving) handleSubmit();
+    if (!saving) handleSubmit(prompt, text);
   };
 
   return (
@@ -348,7 +375,21 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => Promise<
         <b>Reflection Question:</b>&nbsp;What are your thoughts on how individual daily habits can influence overall energy consumption and environmental sustainability?
       </p>
 
-      {apiError && <div className="api-error-box">⚠️ {apiError}</div>}
+      {apiError && (
+        <div className="api-error-box">
+          ⚠️ {apiError}
+          {" "}
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ marginLeft: "0.5rem", padding: "0.25rem 0.75rem", fontSize: "0.85rem" }}
+            onClick={() => handleSubmit(prompt, text)}
+            disabled={saving}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="form-group">
         <label className="form-label">
@@ -357,7 +398,7 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => Promise<
             rows={3}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            disabled={timesUp || saving}
+            disabled={saving}
             className="form-textarea"
             placeholder="Enter your AI prompt here..."
           />
@@ -367,14 +408,14 @@ function AiPage({ onNext }: { onNext: (prompt: string, text: string) => Promise<
         rows={10}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        disabled={timesUp || saving}
+        disabled={saving}
         className="form-textarea"
         placeholder="Start writing..."
       />
       <div className={`timer ${timeLeft < 60 ? "timer-low" : ""}`}>
         Time left: <span className="timer-value">{formatTime(timeLeft)}</span>
       </div>
-      <button type="submit" className="btn btn-primary" disabled={timesUp || saving}>
+      <button type="submit" className="btn btn-primary" disabled={saving}>
         {saving ? "Saving…" : timesUp ? "Time's up! Moving on…" : "Next"}
       </button>
     </form>
@@ -391,6 +432,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasAutoSubmitted = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -402,28 +444,30 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-submit when timer expires
-  useEffect(() => {
-    if (timesUp && !saving) {
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timesUp]);
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (currentText: string) => {
     setSaving(true);
     setApiError(null);
     try {
-      await onSubmit(text);
+      await onSubmit(currentText);
     } catch {
       setApiError("Could not save your response. Please try again.");
+    } finally {
       setSaving(false);
     }
   };
 
+  // Auto-submit when timer expires — use ref to prevent double-firing
+  useEffect(() => {
+    if (timesUp && !hasAutoSubmitted.current) {
+      hasAutoSubmitted.current = true;
+      handleSubmit(text);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timesUp]);
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!timesUp && !saving) handleSubmit();
+    if (!saving) handleSubmit(text);
   };
 
   useEffect(() => {
@@ -464,14 +508,28 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
       </p>
       <p className="warning-text">⚠️ No AI assistance. Copy/paste is disabled.</p>
 
-      {apiError && <div className="api-error-box">⚠️ {apiError}</div>}
+      {apiError && (
+        <div className="api-error-box">
+          ⚠️ {apiError}
+          {" "}
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ marginLeft: "0.5rem", padding: "0.25rem 0.75rem", fontSize: "0.85rem" }}
+            onClick={() => handleSubmit(text)}
+            disabled={saving}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <textarea
         ref={textareaRef}
         rows={10}
         value={text}
         onChange={handleChange}
-        disabled={timesUp || saving}
+        disabled={saving}
         className="form-textarea"
         placeholder="Start writing..."
         onCopy={block}
@@ -483,7 +541,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
       <div className={`timer ${timeLeft < 60 ? "timer-low" : ""}`}>
         Time left: <span className="timer-value">{formatTime(timeLeft)}</span>
       </div>
-      <button type="submit" className="btn btn-primary" disabled={timesUp || saving}>
+      <button type="submit" className="btn btn-primary" disabled={saving}>
         {saving ? "Saving…" : timesUp ? "Time's up! Saving…" : "Finish"}
       </button>
     </form>
