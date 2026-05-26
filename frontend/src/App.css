@@ -24,10 +24,105 @@ body {
 .app-container {
   min-height: 100vh;
   display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.app-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 1.5rem;
+}
+
+/* Progress Bar */
+.progress-bar-wrapper {
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
+  width: 100%;
+  max-width: 600px;
+  gap: 0;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.progress-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 1;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.progress-circle.pending {
+  background-color: #dce3ec;
+  color: #8a9ab0;
+}
+
+.progress-circle.active {
+  background-color: #3498db;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+}
+
+.progress-circle.complete {
+  background-color: #27ae60;
+  color: white;
+}
+
+.progress-label {
+  font-size: 0.7rem;
+  color: #8a9ab0;
+  margin-top: 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.progress-label.label-active {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.progress-line {
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 16px);
+  right: calc(-50% + 16px);
+  height: 2px;
+  background-color: #dce3ec;
+  transition: background-color 0.3s ease;
+  z-index: 0;
+}
+
+.progress-line.line-complete {
+  background-color: #27ae60;
+}
+
+/* API Error */
+.api-error-box {
+  background-color: #fff3cd;
+  border-left: 4px solid #f0a500;
+  color: #7d5a00;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 /* Form Styles */
@@ -120,7 +215,7 @@ body {
   font-size: 0.95rem;
   border: 2px solid #bdc3c7;
   border-radius: 8px;
-  font-family: "Monaco", "Courier New", monospace;
+  font-family: inherit;
   resize: vertical;
   transition: all 0.3s ease;
   width: 100%;
