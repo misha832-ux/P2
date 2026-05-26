@@ -91,7 +91,10 @@ function App() {
         },
         10000
       );
-      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || `Server responded ${res.status}`);
+      }
       const data = await res.json();
       const savedUser = data?.user || info;
       try {
@@ -177,7 +180,8 @@ function App() {
           <UserInfoPage
             onNext={async (info) => {
               const ok = await saveUser(info);
-              if (ok) advance();
+              if (!ok) throw new Error("Save failed");
+              advance();
             }}
           />
         )}
@@ -185,7 +189,8 @@ function App() {
           <AiPage
             onNext={async (prompt, text) => {
               const ok = await saveAi(prompt, text);
-              if (ok) advance();
+              if (!ok) throw new Error("Save failed");
+              advance();
             }}
           />
         )}
@@ -193,7 +198,8 @@ function App() {
           <ManualPage
             onSubmit={async (text) => {
               const ok = await saveManual(text);
-              if (ok) advance();
+              if (!ok) throw new Error("Save failed");
+              advance();
             }}
           />
         )}
