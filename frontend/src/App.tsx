@@ -534,12 +534,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
-    const diff = newText.length - text.length;
-    if (diff > 1) return;
-    if (diff > 0 && text.length > 0) {
-      const cursorPos = e.target.selectionStart;
-      if (cursorPos && cursorPos < newText.length) return;
-    }
+    if (newText.length - text.length > 1) return; // block paste
     setText(newText);
   };
 
