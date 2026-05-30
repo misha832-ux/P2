@@ -542,7 +542,7 @@ function ManualPage({ onSubmit }: { onSubmit: (text: string) => Promise<void> })
     <form onSubmit={submit} className="form-container writing-form">
       <h2 className="form-title">Write without using AI</h2>
       <p className="form-subtext">
-        <b>Scenario:</b>&nbsp;When people make everyday choices—such as using public transportation, conserving electricity, or reducing waste—these actions may seem small individually but can have larger collective impacts over time.
+        <b>Scenario:</b>&nbsp;When people make everyday choices, such as using public transportation, conserving electricity, or reducing waste, these actions may seem small individually but can have larger collective impacts over time.
       </p>
       <p className="form-subtext">
         <b>Reflection Question:</b>&nbsp;To what extent do you think small individual actions can contribute to solving larger global issues?
